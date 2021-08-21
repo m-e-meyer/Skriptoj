@@ -1,0 +1,13 @@
+# Example loot-distribs-adj.txt file.  It is formatted as a typical map file
+# whose first two fields are string and whose last field is an integer.
+#
+# This file shows how to represent:
+# 1) Player example0 got a Warms-Your-Tush, but zapped it to a Covers-Your-Head
+# 2) Player example1 got three slime-soaked sweat glands from another clan
+#
+# Put your loot-distribs-adj.txt in Mafia's data directory, and remove these
+# comments.
+#
+example0	Warms-Your-Tush	-1
+example0	Covers-Your-Head	1
+example1	slime-soaked sweat gland	3
