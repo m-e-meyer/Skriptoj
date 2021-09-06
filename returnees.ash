@@ -4,42 +4,73 @@ Prints a list of clannies who have gone from inactive to active since the last t
 Preserves ranks.
 */
 
+since r19904;    // template string support
+
 import <clanlib>
 
-string INACTIVES_FILE = "inactives.txt";
+string ROSTER_FILE = get_clan_name() + "_roster.txt";
+
+record clan_member {
+    string name;
+    boolean was_active;
+    string rank;
+};
 
 
 void main()
 {
     // Get clannies
     cl_clannie[int] clannies = get_clannies();
-    // Get the previous inactive list
-    string[int] inactives;
-    file_to_map(INACTIVES_FILE, inactives);
-
-    // Report newly-active players
-    foreach id, rank in inactives {
-        cl_clannie c = clannies[id];
-        if (c.is_active)
-            print("Clannie " + c.name + ", previously " + rank + ", has returned!", 
-                  "green");
-    }
-    // Construct new inactive array
-    string[int] inactives_now;
-    foreach id, c in clannies {
-        if (id == 0)  continue;
-        if (! c.is_active) {
-            // Rank - if current rank is Missing, use rank from previous list
-            string rank = c.rank;
-            if (rank == "Missing") {
-                string newrank = inactives[id];
-                if (newrank != "")  
-                    rank = newrank;
-            }
-            inactives_now[id] = rank;
+    // Get previous roster
+    clan_member[int] roster;
+    file_to_map(ROSTER_FILE, roster);
+    
+    // Report departed players
+    foreach id, mem in roster {
+        if (!(clannies contains id)) {
+            print(`{mem.name} has left`, "red");
         }
     }
-    map_to_file(inactives_now, INACTIVES_FILE);
+    
+    // Report newly-active players, while creating updated roster
+    clan_member[int] new_roster;
+    foreach id, clannie in clannies {
+        // Report activity change
+        if (roster contains id) {
+            clan_member mem = roster[id];
+            if (mem.was_active != clannie.is_active) {
+                if (clannie.is_active) {
+                    print(`{clannie.name}, previously {mem.rank}, has returned!`, 
+                          "green");
+                } else {
+                    print(`{clannie.name} has gone inactive`, "red");
+                }
+            }
+        } else {
+            // Someone joined!
+            if (clannie.is_active) {
+                print(`{clannie.name} #{id} has joined!`, "green");
+            } else {
+                print(`{clannie.name} #{id} (inactive) added to roster`);
+            }
+        }
+        // Add to updated roster
+        clan_member mem;
+        mem.name = clannie.name;
+        mem.was_active = clannie.is_active;
+        string rank = clannie.rank;
+        if (rank == "Missing") {
+            string newrank = roster[id].rank;
+            if (newrank != "") {
+                rank = newrank;
+            }
+        }
+        mem.rank = rank;
+        new_roster[id] = mem;
+    }
+    
+    // Save current roster
+    map_to_file(new_roster, ROSTER_FILE); 
 
     print("Done.");
     print("");
