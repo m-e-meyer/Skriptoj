@@ -379,7 +379,7 @@ void print_help(string color)
 {
     print("Command format:", color);
     print("");
-    print("dredlisto [option] ...", color);
+    print("dread-todo [option] ...", color);
     print("");
     print_options(color);
     print("");
