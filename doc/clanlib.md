@@ -81,9 +81,10 @@ Represents a completed dungeon run.  Has the following fields:
 
 Returns the name of the data file in which activity data for the current clan is stored.
 
+    cl_player[int] clan_members()
     cl_player[int] clan_members(int clanid)
     
-Returns a map of the members of the clan with the given clan ID, indexed by 0, 1, 2, ...
+Returns a map of the members of the clan with the given clan ID, indexed by 0, 1, 2, ...  With no arguments, gives a map of the members of your current clan.
     
     void get_clan_activity(string[string][int][string][string][int] activity,
                            int[int][string][item] stash_activity)
@@ -117,6 +118,10 @@ And the value of the map is a number denoting how many of the item was moved, or
     cl_clannie[int] get_clannies()
 
 Returns a map of all the members of the current clan, indexed by the characters' ID numbers.
+
+    cl_player get_player(int id)
+
+Returns information about the player with the given id.
     
     boolean is_active(cl_player p)
 
@@ -145,3 +150,12 @@ Given a map of basement raid logs and the name of a player-character, returns a 
     string stash_activity_file_name()
 
 Returns the name of the data file in which stash activity data for the current clan is stored.
+
+## Commands
+
+clanlib can also be invoked as a command, though it's mainly just for testing.  Still, there are some use ful commands.
+
+### clanlib applications
+
+Prints a message telling you whether there are pending applications to your clan.
+
