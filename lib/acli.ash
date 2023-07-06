@@ -2,7 +2,7 @@
 Utilities for bash-like command line parsing
 */
 
-since r19904;    // template string support
+since r27369;    // vararg support
 
 
 record acli_command_parameters {
@@ -40,7 +40,7 @@ void print(acli_command_parameters cp)
 
 
 /*
-Parse parameter string into words
+Parse parameter string into words.  Characters between quotation marks will be in the same word, regardless of spaces.
 */
 string[int] acli_parse_into_words(string args)
 {
@@ -169,45 +169,54 @@ acli_command_parameters acli_parse(string args, string opts)
     return result;
 }
 
+acli_command_parameters acli_parse(string[int] args, string opts)
+{
+  return acli_parse(join_strings(args, ' '), opts);
+}
+
 acli_command_parameters acli_parse(string args)
 {
     return acli_parse(args, "");
 }
 
+acli_command_parameters acli_parse(string[int] args)
+{
+  return acli_parse(join_strings(args, ' '), "");
+}
 
 /*
-This supports partial naming of options, so that an entire option doesn't need to be typed out.
-Takes an option table, a string-indexed array of int-indexed string arrays.  The keys of the
-option table represent the expected options.  The values of the options table are int-indexed 
-arrays.  Index 0, if present, is an explanation of the option, good for help displays.  In fact,
-if an unexpected option is given and print_help is true, then this prints the list of valid
-options and their meanings.  
+This supports partial naming of choices, so that an entire choice doesn't need to be typed out.
+Takes a lookup table, a string-indexed array of int-indexed string arrays.  The keys of the
+lookup table represent the expected entries.  The values of the lookup table are int-indexed 
+arrays.  Index 0, if present, is an explanation of the choice, good for help displays.  In fact,
+if an unexpected prefix is given and print_help is true, then this prints the list of valid
+choices and their meanings.  
 
 Returns a 0-based int-indexed array of the available options matching the given option.  Ideally
 this array should have only one element.
 */
-string[int] which_option(string[string][int] opt_tbl, string opt, boolean print_help)
+string[int] acli_lookup(string[string][int] lookup_tbl, string prefix, boolean print_help)
 {
-    opt = to_lower_case(opt);
+    prefix = to_lower_case(prefix);
     string[int] result;
-    foreach c in opt_tbl {
-        if (opt == "" || index_of(to_lower_case(c), opt) == 0) {
+    foreach c in lookup_tbl {
+        if (prefix == "" || index_of(to_lower_case(c), prefix) == 0) {
             result[count(result)] = c;
         }
     }
     if (count(result) > 1 && print_help) {
-        if (opt == "") {
-            print("Option not supplied.  Available options:", "red");
+        if (prefix == "") {
+            print("Lookup string not supplied.  Available entries:", "red");
         } else {
-            print(`More than one command matches {opt}.`, "red");
+            print(`More than one command matches {prefix}.`, "red");
         }
         foreach n, c in result {
-            print(`{c}: {opt_tbl[c][0]}`, "red");
+            print(`{c}: {lookup_tbl[c][0]}`, "red");
         }
     } else if (count(result) == 0) {
-        print(`Unrecognized option {opt}.  Available options:`);
-        foreach c in opt_tbl {
-            print(`{c}: {opt_tbl[c][0]}`);
+        print(`Unrecognized option {prefix}.  Available options:`);
+        foreach c in lookup_tbl {
+            print(`{c}: {lookup_tbl[c][0]}`);
         }
     }
     return result;
@@ -230,31 +239,26 @@ string[int] get_first_word(string parmstring)
     return result;
 }
 
-
+/*
+Make a string out of a list of string
 ///////////////////////////////////////////////////////////////
 
 /*
 Main function just for testing
 */
-void main(string args)
+void main(string... args)
 {
     acli_command_parameters acp = acli_parse(args, "abcx:y:z:");
+    print("Valid flags (no args): abc; valid options (args): xyz", 'blue');
     print(acp);
     
-    string[string][int] opt_tbl = {
+    string[string][int] choice_tbl = {
         "yes": { 0: "Do it" },
         "maybe": { 0: "Do it, or don't" },
         "misc": { 0: "Huh?" },
         "no": { 0: "Don't do it" } };
-    string[int] opt = which_option(opt_tbl, acp.parameters[1], true);
-    if (opt.count() == 1) {
-        print(`The option chosen was {opt[0]}.`);
+    string[int] found = acli_lookup(choice_tbl, acp.parameters[1], true);
+    if (found.count() == 1) {
+        print(`The string found was {found[0]}.`);
     }
-    
-    string[int] x = get_first_word(" dallas   texas united states ");
-    print(`[{x[0]}] [{x[1]}]`);
-    x = get_first_word(" dallas   ");
-    print(`[{x[0]}] [{x[1]}]`);
-    x = get_first_word(" ");
-    print(`[{x[0]}] [{x[1]}]`);
 }
