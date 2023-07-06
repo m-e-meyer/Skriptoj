@@ -22,6 +22,7 @@ record cl_player {
     int level;
     boolean is_hardcore;
     boolean is_ronin;
+    boolean is_bad_moon;
     // Obtainable from public user page
     int ascensions;
     int turns_total;
@@ -180,7 +181,7 @@ cl_player[int] clan_members(int clanid)
     }
     string clan_name = group(m, 1);
     while (true) {
-        matcher m = create_matcher('nounder href=.showplayer.php[?]who=([0-9]*)">([^<]*)</a></b>&nbsp;</td><td class=small>([^<]*)</td><td class=small>([0-9]*)( [(][HR][)])?<', chtml);
+        matcher m = create_matcher('nounder href=.showplayer.php[?]who=([0-9]*)">([^<]*)</a></b>&nbsp;</td><td class=small>([^<]*)</td><td class=small>([0-9]*)( [(][HRB]M?[)])?<', chtml);
         while (find(m)) {
             cl_player p;
             p.id = to_int(group(m, 1));
@@ -190,7 +191,8 @@ cl_player[int] clan_members(int clanid)
             string note = group(m, 5);
             p.is_ronin = (note == ' (R)');
             p.is_hardcore = (note == ' (H)');
-            result[count(result)] = p;
+            p.is_bad_moon = (note == ' (BM)');
+            result[p.id] = p;
         }
         if (count(result) > 150)
             break;
@@ -203,6 +205,12 @@ cl_player[int] clan_members(int clanid)
     print(`{count(result)} players found.`);
     return result;
 }
+
+cl_player[int] clan_members()
+{
+    return clan_members(get_clan_id());
+}
+
 
 string get_datum(buffer html, string qual)
 {
@@ -256,6 +264,14 @@ void load_player_page_info(cl_player p)
     if (d != "")  p.created = date_to_timestamp("MMMM dd, yyyy", d)/1000;
     d = get_datum(phtml, "Last Login");
     if (d != "")  p.last_login = date_to_timestamp("MMMM dd, yyyy", d)/1000;
+}
+
+cl_player get_player(int id)
+{
+    cl_player result;
+    result.id = id;
+    load_player_page_info(result);
+    return result;
 }
 
 boolean is_active(cl_player p)
@@ -768,6 +784,14 @@ void main(string op)
     string cmd = to_lower_case(group(m, 1));
     string arg = group(m, 2);
     switch (cmd) {
+    case "applications":
+        buffer b = visit_url("clan_applications.php");
+        if (b.index_of("There are no more pending clan applications") >= 0) {
+            print("There are no pending clan applications");
+        } else {
+            print("**** THERE ARE PENDING CLAN APPLICATIONS ****", "red");
+        }
+        break;
     case "clan":
         foreach id, c in get_clannies() {
             print(to_string(c));
@@ -877,10 +901,23 @@ void main(string op)
             print("Got " + 2, "olive");
         }
         break;
+    case "test":
+        cl_player[int] players = clan_members();
+        cl_clannie[int] clannies = get_clannies();
+        foreach n, c in clannies {
+            if (c.is_active) {
+                cl_player p = players[c.id];
+                if (p.is_hardcore || p.is_ronin || p.is_bad_moon) {
+                    print(c.to_string(), "red");
+                } else { 
+                    print(c.to_string(), "green");
+                }
+            }
+        }
+        break;
     default:
         print("Command '" + cmd + "' unknown", "red");
         break;
     }
-    print("Done.");
     print("");
 }
